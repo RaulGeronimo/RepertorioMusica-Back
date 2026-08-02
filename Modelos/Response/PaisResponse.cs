@@ -7,14 +7,16 @@ namespace Modelos.Response
         public int PaisId { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string Nacionalidad { get; set; } = string.Empty;
-        public int ContinenteId { get; set; }
         public string Bandera { get; set; } = string.Empty;
     }
 
-    public class PaisResponse : PaisBaseResponse { }
+    public class PaisResponse : PaisBaseResponse { 
+        public int ContinenteId { get; set; }
+    }
 
     public class PaisesResponse : PaisBaseResponse
     {
+        public string Continente { get; set; } = string.Empty;
         public int TotalRegistros { get; set; }
     }
 
