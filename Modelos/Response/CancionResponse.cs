@@ -21,6 +21,7 @@ namespace Modelos.Response
     {
         public string Interpretacion { get; set; } = string.Empty;
         public string Grupo { get; set; } = string.Empty;
+        public string Albumes { get; set; } = string.Empty;
         public int TotalRegistros { get; set; }
     }
 

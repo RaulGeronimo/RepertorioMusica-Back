@@ -88,7 +88,7 @@ namespace MusicaAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> Buscar()
         {
-            var (response, lista) = await _service.EjecutarSPConXmlLista<object, ArtistasGrupoListResponse<ArtistasGrupoResponse>, ArtistasGrupoResponse>("scObtenerCancionAlbum");
+            var (response, lista) = await _service.EjecutarSPConXmlLista<object, CancionesAlbumListResponse<CancionesAlbumResponse>, CancionesAlbumResponse>("scObtenerCancionAlbum");
 
             if (!response.Success)
             { return BadRequest(response); }
@@ -99,7 +99,7 @@ namespace MusicaAPI.Controllers
         [HttpGet("{cancionAlbumId}")]
         public async Task<IActionResult> ObtenerPorId(int cancionAlbumId)
         {
-            var (response, item) = await _service.EjecutarSPPorId<ArtistasGrupoListResponse<CancionAlbumResponse>, CancionAlbumResponse>("scBuscarCancionAlbumId", "@CancionAlbumId", cancionAlbumId);
+            var (response, item) = await _service.EjecutarSPPorId<CancionesAlbumListResponse<CancionAlbumResponse>, CancionAlbumResponse>("scBuscarCancionAlbumId", "@CancionAlbumId", cancionAlbumId);
 
             if (!response.Success)
             { return BadRequest(response); }
