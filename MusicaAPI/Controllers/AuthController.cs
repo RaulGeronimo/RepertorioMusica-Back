@@ -70,9 +70,10 @@ namespace MusicaAPI.Controllers
         }
 
         [Authorize]
-        [HttpGet("{usuarioId}")]
-        public async Task<IActionResult> ObtenerPorId(int usuarioId)
+        [HttpGet("usuario")]
+        public async Task<IActionResult> ObtenerPorId()
         {
+            int usuarioId = _service.ResolverUsuarioId();
             var (response, item) = await _service.EjecutarSPPorId<UsuariosListResponse<UsuariosResponse>, UsuariosResponse>("scBuscarUsuarioId", "@UsuarioId", usuarioId);
 
             if (!response.Success)
@@ -153,7 +154,7 @@ namespace MusicaAPI.Controllers
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                ExpiraEn = DateTime.Now.AddHours(1),
+                ExpiraEn = _jwtHelper.GetExpiration(),
                 Permisos = usuario.Permisos
             });
         }
@@ -167,9 +168,16 @@ namespace MusicaAPI.Controllers
             { return Unauthorized("Token inválido"); }
 
             // 1. Extraer claims del token expirado
+            var usuarioIdClaim = principal.FindFirst("UsuarioId");
+
+            if (usuarioIdClaim == null)
+            {
+                return Unauthorized("Token inválido");
+            }
+
             var usuario = new AuthResponse
             {
-                UsuarioId = int.Parse(principal.FindFirst("UsuarioId").Value),
+                UsuarioId = int.Parse(usuarioIdClaim.Value)
             };
 
             // 2. Consultar los permisos del usuario
@@ -189,7 +197,7 @@ namespace MusicaAPI.Controllers
             {
                 AccessToken = newAccessToken,
                 RefreshToken = newRefreshToken,
-                ExpiraEn = DateTime.Now.AddHours(1),
+                ExpiraEn = _jwtHelper.GetExpiration(),
                 Permisos = usuario.Permisos
             });
         }
