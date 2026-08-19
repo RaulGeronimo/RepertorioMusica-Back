@@ -169,6 +169,7 @@ namespace MusicaAPI.Controllers
 
             // 1. Extraer claims del token expirado
             var usuarioIdClaim = principal.FindFirst("UsuarioId");
+            var usuarioClaim = principal.FindFirst("Usuario");
 
             if (usuarioIdClaim == null)
             {
@@ -177,7 +178,8 @@ namespace MusicaAPI.Controllers
 
             var usuario = new AuthResponse
             {
-                UsuarioId = int.Parse(usuarioIdClaim.Value)
+                UsuarioId = int.Parse(usuarioIdClaim.Value),
+                Usuario = usuarioClaim.Value
             };
 
             // 2. Consultar los permisos del usuario
