@@ -31,11 +31,12 @@ namespace MusicaAPI.Controllers
                 return BadRequest(response);
             }
 
-            int registroId = int.TryParse(response.Result?.InnerText, out var id) ? id : 0;
+            int registroId = int.TryParse(response.Result?["Id"]?.InnerText, out var parsedId) ? parsedId : 0;
+            string nombre = response.Result?["Nombre"]?.InnerText!;
             response.Result = null;
 
             // Registrar bitácora
-            await _service.RegistrarBitacoraCarga(SeccionBitacora.Artista, request.NombreArtistico, ProcesoBitacora.Agregado, registroId);
+            await _service.RegistrarBitacoraCarga(SeccionBitacora.Artista, nombre, ProcesoBitacora.Agregado, registroId);
 
             return Ok(response);
         }
@@ -52,11 +53,12 @@ namespace MusicaAPI.Controllers
                 return BadRequest(response);
             }
 
-            int registroId = int.TryParse(response.Result?.InnerText, out var id) ? id : 0;
+            int registroId = int.TryParse(response.Result?["Id"]?.InnerText, out var parsedId) ? parsedId : 0;
+            string nombre = response.Result?["Nombre"]?.InnerText!;
             response.Result = null;
 
             // Registrar bitácora
-            await _service.RegistrarBitacoraCarga(SeccionBitacora.Artista, request.NombreArtistico, ProcesoBitacora.Actualizado, registroId);
+            await _service.RegistrarBitacoraCarga(SeccionBitacora.Artista, nombre, ProcesoBitacora.Actualizado, registroId);
 
             return Ok(response);
         }
@@ -73,12 +75,12 @@ namespace MusicaAPI.Controllers
                 return BadRequest(response);
             }
 
-            int id = int.TryParse(response.Result?["Id"]?.InnerText, out var parsedId) ? parsedId : 0;
+            int registroId = int.TryParse(response.Result?["Id"]?.InnerText, out var parsedId) ? parsedId : 0;
             string nombre = response.Result?["Nombre"]?.InnerText!;
             response.Result = null;
 
             // Registrar bitácora
-            await _service.RegistrarBitacoraCarga(SeccionBitacora.Artista, nombre, ProcesoBitacora.Eliminado, id);
+            await _service.RegistrarBitacoraCarga(SeccionBitacora.Artista, nombre, ProcesoBitacora.Eliminado, registroId);
 
             return Ok(response);
         }
