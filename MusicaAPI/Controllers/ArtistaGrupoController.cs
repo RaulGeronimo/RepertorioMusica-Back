@@ -99,7 +99,7 @@ namespace MusicaAPI.Controllers
         [HttpGet("{artistaGrupoId}")]
         public async Task<IActionResult> ObtenerPorId(int artistaGrupoId)
         {
-            var (response, item) = await _service.EjecutarSPPorId<ArtistasGrupoListResponse<ArtistaGrupoResponse>, ArtistaGrupoResponse>("scBuscarArtistaGrupoId", "@ArtistaGrupoId", artistaGrupoId);
+            var (response, item) = await _service.EjecutarSPPorId<ArtistasGrupoListResponse<ArtistaGrupoRequest>, ArtistaGrupoRequest>("scBuscarArtistaGrupoId", "@ArtistaGrupoId", artistaGrupoId);
 
             if (!response.Success)
             { return BadRequest(response); }

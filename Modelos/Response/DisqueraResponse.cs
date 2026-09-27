@@ -2,26 +2,16 @@
 
 namespace Modelos.Response
 {
-    public class DisqueraBaseResponse
+    public class DisquerasResponse
     {
         public int DisqueraId { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public DateTime Fundacion { get; set; }
         public string Fundador { get; set; } = string.Empty;
         public string Generos { get; set; } = string.Empty;
-        public string Logo { get; set; } = string.Empty;
-    }
-
-    public class DisqueraResponse : DisqueraBaseResponse
-    {
-        public int PaisId { get; set; }
-        public int EstatusId { get; set; }
-    }
-
-    public class DisquerasResponse : DisqueraBaseResponse
-    {
         public string Pais { get; set; } = string.Empty;
         public string Estatus { get; set; } = string.Empty;
+        public string Logo { get; set; } = string.Empty;
         public int TotalRegistros { get; set; }
     }
 

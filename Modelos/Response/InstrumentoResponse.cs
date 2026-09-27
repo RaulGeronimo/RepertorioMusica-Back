@@ -2,18 +2,12 @@
 
 namespace Modelos.Response
 {
-    public class InstrumentoBaseResponse
+    public class InstrumentosResponse
     {
         public int InstrumentoId { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string Descripcion { get; set; } = string.Empty;
         public string Foto { get; set; } = string.Empty;
-    }
-
-    public class InstrumentoResponse : InstrumentoBaseResponse { }
-
-    public class InstrumentosResponse : InstrumentoBaseResponse
-    {
         public int TotalRegistros { get; set; }
     }
 

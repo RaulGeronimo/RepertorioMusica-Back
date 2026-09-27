@@ -2,19 +2,9 @@
 
 namespace Modelos.Response
 {
-    public class InstrumentoArtistaGrupoBaseResponse
+    public class InstrumentosArtistaGrupoResponse
     {
         public int InstrumentoArtistaGrupoId { get; set; }
-    }
-
-    public class InstrumentoArtistaGrupoResponse : InstrumentoArtistaGrupoBaseResponse
-    {
-        public int ArtistaId { get; set; }
-        public int InstrumentoId { get; set; }
-    }
-
-    public class InstrumentosArtistaGrupoResponse : InstrumentoArtistaGrupoBaseResponse
-    {
         public string Nombre { get; set; } = string.Empty;
         public string NombreArtistico { get; set; } = string.Empty;
         public string Grupo { get; set; } = string.Empty;

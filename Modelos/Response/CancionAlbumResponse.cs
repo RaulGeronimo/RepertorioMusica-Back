@@ -2,22 +2,12 @@
 
 namespace Modelos.Response
 {
-    public class CancionAlbumBaseResponse
+    public class CancionesAlbumResponse
     {
         public int CancionAlbumId { get; set; }
-        public int Numero { get; set; }
-    }
-
-    public class CancionAlbumResponse : CancionAlbumBaseResponse
-    {
-        public int AlbumId { get; set; }
-        public int CancionId { get; set; }
-    }
-
-    public class CancionesAlbumResponse : CancionAlbumBaseResponse
-    {
         public string Album { get; set; } = string.Empty;
         public string Cancion { get; set; } = string.Empty;
+        public int Numero { get; set; }
         public string Duracion { get; set; } = string.Empty;
         public DateTime Publicacion { get; set; }
         public string Genero { get; set; } = string.Empty;

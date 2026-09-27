@@ -2,21 +2,13 @@
 
 namespace Modelos.Response
 {
-    public class PaisBaseResponse
+    public class PaisesResponse
     {
         public int PaisId { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string Nacionalidad { get; set; } = string.Empty;
-        public string Bandera { get; set; } = string.Empty;
-    }
-
-    public class PaisResponse : PaisBaseResponse { 
-        public int ContinenteId { get; set; }
-    }
-
-    public class PaisesResponse : PaisBaseResponse
-    {
         public string Continente { get; set; } = string.Empty;
+        public string Bandera { get; set; } = string.Empty;
         public int TotalRegistros { get; set; }
     }
 

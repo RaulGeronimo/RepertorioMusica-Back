@@ -2,24 +2,13 @@
 
 namespace Modelos.Response
 {
-    public class ArtistaGrupoBaseResponse
+    public class ArtistasGrupoResponse
     {
         public int ArtistaGrupoId { get; set; }
-    }
-
-    public class ArtistaGrupoResponse : ArtistaGrupoBaseResponse
-    {
-        public int ArtistaId { get; set; }
-        public int GrupoId { get; set; }
-        public DateTime FechaInicio { get; set; }
-        public DateTime? FechaFin { get; set; }
-    }
-
-    public class ArtistasGrupoResponse : ArtistaGrupoBaseResponse
-    {
         public string Nombre { get; set; } = string.Empty;
         public string NombreArtistico { get; set; } = string.Empty;
         public string Grupo { get; set; } = string.Empty;
+        public string Periodo { get; set; } = string.Empty;
         public string Genero { get; set; } = string.Empty;
         public DateTime FechaNacimiento { get; set; }
         public DateTime? FechaFinado { get; set; }
@@ -29,7 +18,6 @@ namespace Modelos.Response
         public string Instrumentos { get; set; } = string.Empty;
         public string TipoVoz { get; set; } = string.Empty;
         public string Foto { get; set; } = string.Empty;
-        public string Periodo { get; set; } = string.Empty;
         public int TotalRegistros { get; set; }
     }
 
