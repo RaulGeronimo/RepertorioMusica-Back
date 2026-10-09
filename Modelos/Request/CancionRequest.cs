@@ -9,5 +9,7 @@
         public string Genero { get; set; } = string.Empty;
         public int InterpretacionId { get; set; }
         public int GrupoId { get; set; }
+        public string Colaboracion { get; set; } = string.Empty;
+        public string SpotifyId { get; set; } = string.Empty;
     }
 }

@@ -65,6 +65,7 @@ namespace MusicaAPI
             // Servicios
             builder.Services.AddScoped<IConnectionFactory, ConexionBD>();
             builder.Services.AddScoped<DynamicService>();
+            builder.Services.AddHttpClient<SpotifyService>();
             builder.Services.AddScoped<IJwtHelper, JwtHelper>();
 
             // JWT

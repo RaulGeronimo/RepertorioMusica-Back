@@ -13,6 +13,7 @@ namespace Modelos.Response
         public string Genero { get; set; } = string.Empty;
         public string Interpretacion { get; set; } = string.Empty;
         public string Grupo { get; set; } = string.Empty;
+        public string SpotifyId { get; set; } = string.Empty;
         public int TotalRegistros { get; set; }
     }
 
