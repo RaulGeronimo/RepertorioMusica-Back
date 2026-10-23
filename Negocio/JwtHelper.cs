@@ -13,6 +13,10 @@ namespace Negocio
         string GenerateToken(AuthResponse usuario);
         string GenerateToken(IEnumerable<Claim> claims);
         string GenerateRefreshToken();
+        string GenerateSecureCode();
+        string HashToken(string token);
+        int RefreshDias(bool mantenerSesion);
+        int QrSegundos { get; }
         ClaimsPrincipal GetPrincipalFromExpiredToken(string token);
         DateTime GetExpiration();
     }
@@ -21,17 +25,29 @@ namespace Negocio
     {
         private readonly IConfiguration _config;
         private readonly int _expiresInMinutes;
+        private readonly int _refreshDiasMantener;
+        private readonly int _refreshDiasNormal;
+
+        public int QrSegundos { get; }
 
         public JwtHelper(IConfiguration config)
         {
             _config = config;
 
             _expiresInMinutes = int.TryParse(_config["Jwt:ExpiresInMinutes"], out var minutes) ? minutes : 60;
+            _refreshDiasMantener = int.TryParse(_config["Jwt:RefreshDiasMantener"], out var dm) ? dm : 30;
+            _refreshDiasNormal = int.TryParse(_config["Jwt:RefreshDiasNormal"], out var dn) ? dn : 1;
+            QrSegundos = int.TryParse(_config["Jwt:QrSegundos"], out var qs) ? qs : 60;
         }
 
         public DateTime GetExpiration()
         {
             return DateTime.UtcNow.AddMinutes(_expiresInMinutes);
+        }
+
+        public int RefreshDias(bool mantenerSesion)
+        {
+            return mantenerSesion ? _refreshDiasMantener : _refreshDiasNormal;
         }
 
         private IEnumerable<Claim> BuildClaims(AuthResponse usuario)
@@ -84,6 +100,19 @@ namespace Negocio
         {
             var bytes = RandomNumberGenerator.GetBytes(64);
             return Convert.ToBase64String(bytes);
+        }
+
+        // Código aleatorio de 256 bits en base64url (seguro para QR y URLs)
+        public string GenerateSecureCode()
+        {
+            return Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
+        }
+
+        // SHA-256 en hexadecimal minúsculas. En BD solo se guarda el hash, nunca el token.
+        public string HashToken(string token)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToHexString(bytes).ToLowerInvariant();
         }
 
         public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)

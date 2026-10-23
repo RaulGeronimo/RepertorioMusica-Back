@@ -5,6 +5,7 @@
         public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
         public DateTime ExpiraEn { get; set; }
+        public bool MantenerSesion { get; set; }
         public List<PermisoResponse> Permisos { get; set; } = new();
     }
 }

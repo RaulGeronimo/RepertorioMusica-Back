@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Modelos.Auth;
+using Modelos.Auth.QR;
+using Modelos.Auth.Sesion;
 using Modelos.Enums;
 using Modelos.Request;
 using Modelos.Response;
@@ -137,72 +139,193 @@ namespace MusicaAPI.Controllers
                 return Unauthorized(response);
             }
 
-            // 5. Obtener permisos del usuario
-            var permisosResponse = await _service.EjecutarSPConXml("scBuscarPermisos", usuario);
-            if (permisosResponse.Success && permisosResponse.Result != null)
-            {
-                var wrapper = XmlHelper.DeserializeFromXml<PermisosWrapper>(permisosResponse.Result.OuterXml);
-                usuario.Permisos = wrapper.Items;
-            }
+            // 5. Permisos + tokens (el refresh token se guarda hasheado en BD)
+            usuario.Password = string.Empty;
+            var tokens = await EmitirSesionNuevaAsync(usuario, request.MantenerSesion);
+            if (tokens == null)
+            { return StatusCode(500, Fallo("No se pudo iniciar la sesión.", "500")); }
 
-            // 6. Generar tokens
-            var accessToken = _jwtHelper.GenerateToken(usuario);
-            var refreshToken = _jwtHelper.GenerateRefreshToken();
-
-            // 7. Devolver respuesta
-            return Ok(new TokenResponse
-            {
-                AccessToken = accessToken,
-                RefreshToken = refreshToken,
-                ExpiraEn = _jwtHelper.GetExpiration(),
-                Permisos = usuario.Permisos
-            });
+            // 6. Devolver respuesta
+            return Ok(tokens);
         }
 
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
         {
-            var principal = _jwtHelper.GetPrincipalFromExpiredToken(request.AccessToken);
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            { return Unauthorized(Fallo("La sesión no es válida.", "100_601")); }
 
-            if (principal == null)
-            { return Unauthorized("Token inválido"); }
+            // 1. Validar y rotar el refresh token en BD (revoca el anterior y emite uno nuevo)
+            var nuevoRefreshToken = _jwtHelper.GenerateRefreshToken();
 
-            // 1. Extraer claims del token expirado
-            var usuarioIdClaim = principal.FindFirst("UsuarioId");
-            var usuarioClaim = principal.FindFirst("Usuario");
-
-            if (usuarioIdClaim == null)
+            response = await _service.EjecutarSPConXml("scRotarRefreshToken", new RefreshTokenRotarRequest
             {
-                return Unauthorized("Token inválido");
+                TokenHashActual = _jwtHelper.HashToken(request.RefreshToken),
+                TokenHashNuevo = _jwtHelper.HashToken(nuevoRefreshToken),
+                DiasMantener = _jwtHelper.RefreshDias(true),
+                DiasNormal = _jwtHelper.RefreshDias(false),
+                GraciaSegundos = 30,
+                Ip = ObtenerIp(),
+                Dispositivo = ObtenerDispositivo()
+            });
+
+            if (!response.Success || response.Result == null)
+            { return Unauthorized(response); }
+
+            var sesion = XmlHelper.DeserializeFromXml<SesionResponse>(response.Result.OuterXml);
+
+            // 2. Permisos actuales del usuario (por si cambiaron desde el último token)
+            var usuario = new AuthResponse
+            {
+                UsuarioId = sesion.UsuarioId,
+                Usuario = sesion.Usuario,
+                Activo = sesion.Activo
+            };
+            await CargarPermisosAsync(usuario);
+
+            // 3. Retornar tokens
+            return Ok(new TokenResponse
+            {
+                AccessToken = _jwtHelper.GenerateToken(usuario),
+                RefreshToken = nuevoRefreshToken,
+                ExpiraEn = _jwtHelper.GetExpiration(),
+                MantenerSesion = sesion.MantenerSesion,
+                Permisos = usuario.Permisos
+            });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
+        {
+            if (!string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                await _service.EjecutarSPConXml("scRevocarRefreshToken", new RefreshTokenRevocarRequest
+                {
+                    TokenHash = _jwtHelper.HashToken(request.RefreshToken)
+                });
             }
+
+            return Ok(new GenericResponse { Success = true, Message = "Sesión cerrada", Code = "200" });
+        }
+
+        #region Login con QR
+        [Authorize]
+        [HttpPost("qr/generar")]
+        public async Task<IActionResult> GenerarQr()
+        {
+            var usuarioId = _service.UsuarioIdActual;
+            if (usuarioId == null)
+            { return Unauthorized(Fallo("La sesión no es válida.", "100_601")); }
+
+            var codigo = _jwtHelper.GenerateSecureCode();
+            var segundos = _jwtHelper.QrSegundos;
+
+            response = await _service.EjecutarSPConXml("scGenerarQrLogin", new QrGenerarRequest
+            {
+                UsuarioId = usuarioId.Value,
+                CodigoHash = _jwtHelper.HashToken(codigo),
+                Segundos = segundos,
+                Ip = ObtenerIp()
+            });
+
+            if (!response.Success)
+            { return BadRequest(response); }
+
+            return Ok(new QrGenerarResponse { Contenido = PrefijoQr + codigo, Segundos = segundos });
+        }
+
+        [HttpPost("qr/login")]
+        public async Task<IActionResult> LoginConQr([FromBody] QrLoginRequest request)
+        {
+            var contenido = request.Contenido?.Trim() ?? string.Empty;
+
+            if (!contenido.StartsWith(PrefijoQr) || contenido.Length > 200)
+            { return Unauthorized(Fallo("El código QR no es válido.", "100_604")); }
+
+            var codigo = contenido.Substring(PrefijoQr.Length);
+
+            response = await _service.EjecutarSPConXml("scConsumirQrLogin", new QrConsumirRequest
+            {
+                CodigoHash = _jwtHelper.HashToken(codigo),
+                Ip = ObtenerIp(),
+                Dispositivo = ObtenerDispositivo()
+            });
+
+            if (!response.Success || response.Result == null)
+            { return Unauthorized(response); }
+
+            var sesion = XmlHelper.DeserializeFromXml<SesionResponse>(response.Result.OuterXml);
 
             var usuario = new AuthResponse
             {
-                UsuarioId = int.Parse(usuarioIdClaim.Value),
-                Usuario = usuarioClaim.Value
+                UsuarioId = sesion.UsuarioId,
+                Usuario = sesion.Usuario,
+                Activo = sesion.Activo
             };
 
-            // 2. Consultar los permisos del usuario
+            var tokens = await EmitirSesionNuevaAsync(usuario, request.MantenerSesion);
+            if (tokens == null)
+            { return StatusCode(500, Fallo("No se pudo iniciar la sesión.", "500")); }
+
+            return Ok(tokens);
+        }
+        #endregion Login con QR
+
+        #region Helpers de sesión
+        private const string PrefijoQr = "RPQR1:";
+
+        private string? ObtenerIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        private string? ObtenerDispositivo()
+        {
+            var userAgent = Request.Headers.UserAgent.ToString();
+            if (string.IsNullOrWhiteSpace(userAgent)) return null;
+            return userAgent.Length > 200 ? userAgent.Substring(0, 200) : userAgent;
+        }
+
+        private static GenericResponse Fallo(string mensaje, string code) =>
+            new GenericResponse { Success = false, Message = mensaje, Code = code };
+
+        private async Task CargarPermisosAsync(AuthResponse usuario)
+        {
             var permisosResponse = await _service.EjecutarSPConXml("scBuscarPermisos", usuario);
             if (permisosResponse.Success && permisosResponse.Result != null)
             {
                 var wrapper = XmlHelper.DeserializeFromXml<PermisosWrapper>(permisosResponse.Result.OuterXml);
                 usuario.Permisos = wrapper.Items;
             }
-
-            // 3. Generar nuevos tokens
-            var newAccessToken = _jwtHelper.GenerateToken(usuario);
-            var newRefreshToken = _jwtHelper.GenerateRefreshToken();
-
-            // 4. Retornar los tokens con permisos
-            return Ok(new TokenResponse
-            {
-                AccessToken = newAccessToken,
-                RefreshToken = newRefreshToken,
-                ExpiraEn = _jwtHelper.GetExpiration(),
-                Permisos = usuario.Permisos
-            });
         }
+
+        private async Task<TokenResponse?> EmitirSesionNuevaAsync(AuthResponse usuario, bool mantenerSesion)
+        {
+            await CargarPermisosAsync(usuario);
+
+            var refreshToken = _jwtHelper.GenerateRefreshToken();
+
+            var guardado = await _service.EjecutarSPConXml("scGuardarRefreshToken", new RefreshTokenGuardarRequest
+            {
+                UsuarioId = usuario.UsuarioId,
+                TokenHash = _jwtHelper.HashToken(refreshToken),
+                FamiliaId = Guid.NewGuid(),
+                MantenerSesion = mantenerSesion,
+                DiasVigencia = _jwtHelper.RefreshDias(mantenerSesion),
+                Ip = ObtenerIp(),
+                Dispositivo = ObtenerDispositivo()
+            });
+
+            if (!guardado.Success)
+            { return null; }
+
+            return new TokenResponse
+            {
+                AccessToken = _jwtHelper.GenerateToken(usuario),
+                RefreshToken = refreshToken,
+                ExpiraEn = _jwtHelper.GetExpiration(),
+                MantenerSesion = mantenerSesion,
+                Permisos = usuario.Permisos
+            };
+        }
+        #endregion Helpers de sesión
 
         [HttpPost("validar")]
         public async Task<IActionResult> Validar([FromBody] UsuarioRequest request)
