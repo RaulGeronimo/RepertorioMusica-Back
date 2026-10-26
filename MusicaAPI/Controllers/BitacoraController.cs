@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MusicaAPI.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Modelos.Excel;
 using Modelos.Response;
 using Negocio;
 
@@ -40,6 +42,25 @@ namespace MusicaAPI.Controllers
             return Ok(lista);
         }
 
+        [HttpGet("Carga/Exportar")]
+        public async Task<IActionResult> ExportarCarga()
+        {
+            var (response, lista) = await _service.EjecutarSPConXmlLista<object, BitacoraCargaListResponse<BitacoraCargaResponse>, BitacoraCargaResponse>("scObtenerBitacoraCarga");
+
+            if (!response.Success)
+                return BadRequest(response);
+
+            if (lista == null || !lista.Any())
+                return NotFound(new { mensaje = response.Message });
+
+            var bytes = ExcelExporter.Generar(lista, new ExcelOptions
+            {
+                NombreHoja = "Bitacora"
+            });
+
+            return this.ExcelFile(bytes, "BitacoraCarga");
+        }
+
         [HttpGet("Error")]
         public async Task<IActionResult> Error()
         {
@@ -61,6 +82,25 @@ namespace MusicaAPI.Controllers
             { return BadRequest(response); }
 
             return Ok(lista);
+        }
+
+        [HttpGet("Error/Exportar")]
+        public async Task<IActionResult> ExportarError()
+        {
+            var (response, lista) = await _service.EjecutarSPConXmlLista<object, BitacoraErrorListResponse<BitacoraErrorResponse>, BitacoraErrorResponse>("scObtenerBitacoraError");
+
+            if (!response.Success)
+                return BadRequest(response);
+
+            if (lista == null || !lista.Any())
+                return NotFound(new { mensaje = response.Message });
+
+            var bytes = ExcelExporter.Generar(lista, new ExcelOptions
+            {
+                NombreHoja = "Bitacora"
+            });
+
+            return this.ExcelFile(bytes, "BitacoraError");
         }
     }
 }

@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MusicaAPI.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Modelos.Enums;
+using Modelos.Excel;
 using Modelos.Request;
 using Modelos.Response;
 using Negocio;
@@ -108,6 +110,25 @@ namespace MusicaAPI.Controllers
             { return NotFound(response); }
 
             return Ok(item);
+        }
+
+        [HttpGet("Exportar")]
+        public async Task<IActionResult> Exportar()
+        {
+            var (response, lista) = await _service.EjecutarSPConXmlLista<object, InstrumentosListResponse<InstrumentosResponse>, InstrumentosResponse>("scObtenerInstrumento");
+
+            if (!response.Success)
+                return BadRequest(response);
+
+            if (lista == null || !lista.Any())
+                return NotFound(new { mensaje = response.Message });
+
+            var bytes = ExcelExporter.Generar(lista, new ExcelOptions
+            {
+                NombreHoja = "Instrumentos"
+            });
+
+            return this.ExcelFile(bytes, "Instrumentos");
         }
     }
 }

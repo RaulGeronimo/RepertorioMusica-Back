@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MusicaAPI.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Modelos.Auth;
 using Modelos.Auth.QR;
 using Modelos.Auth.Sesion;
 using Modelos.Enums;
+using Modelos.Excel;
 using Modelos.Request;
 using Modelos.Response;
 using Negocio;
@@ -97,6 +99,25 @@ namespace MusicaAPI.Controllers
             { return BadRequest(response); }
 
             return Ok(lista);
+        }
+
+        [HttpGet("Exportar")]
+        public async Task<IActionResult> Exportar()
+        {
+            var (response, lista) = await _service.EjecutarSPConXmlLista<object, UsuariosListResponse<UsuariosResponse>, UsuariosResponse>("scObtenerUsuario");
+
+            if (!response.Success)
+                return BadRequest(response);
+
+            if (lista == null || !lista.Any())
+                return NotFound(new { mensaje = response.Message });
+
+            var bytes = ExcelExporter.Generar(lista, new ExcelOptions
+            {
+                NombreHoja = "Usuarios"
+            });
+
+            return this.ExcelFile(bytes, "Usuarios");
         }
 
         [HttpPost("login")]
